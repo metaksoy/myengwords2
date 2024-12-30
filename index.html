@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Met-Game</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .game-area {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .word-display {
+            font-size: 24px;
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #e3f2fd;
+            border-radius: 5px;
+        }
+        .options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: #2196f3;
+            color: white;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #1976d2;
+        }
+        .level-select {
+            margin: 20px 0;
+            text-align: center;
+        }
+        .score {
+            font-size: 18px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .feedback {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .correct {
+            background-color: #c8e6c9;
+            color: #2e7d32;
+        }
+        .incorrect {
+            background-color: #ffcdd2;
+            color: #c62828;
+        }
+        .admin-panel {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 10px;
+        }
+        .add-word-form {
+            display: grid;
+            gap: 10px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        .add-word-form input,
+        .add-word-form select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .add-word-form button {
+            background-color: #4caf50;
+        }
+        .add-word-form button:hover {
+            background-color: #45a049;
+        }
+        #addWordFeedback {
+            margin-top: 10px;
+        }
+        .success {
+            background-color: #c8e6c9;
+            color: #2e7d32;
+        }
+        .error {
+            background-color: #ffcdd2;
+            color: #c62828;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="text-align: center;">AFFFFFERİM SANA</h1>
+        
+        <div class="level-select">
+            <h3>Seviye Seçin</h3>
+            <button onclick="setLevel('A1')">A1 (Başlangıç)</button>
+            <button onclick="setLevel('A2')">A2 (Temel)</button>
+            <button onclick="setLevel('B1')">B1 (Orta)</button>
+            <button onclick="setLevel('B2')">B2 (İleri)</button>
+            <button onclick="setLevel('A1-Cümle')">A1-Cümle</button>
+            <button onclick="setLevel('A2-Cümle')">A2-Cümle</button>
+            <button onclick="setLevel('B1-Cümle')">B1-Cümle</button>
+            <button onclick="setLevel('B2-Cümle')">B2-Cümle</button>
+        </div>
+
+        <div class="score">
+            Puan: <span id="score">0</span> / Toplam Soru: <span id="totalQuestions">0</span>
+        </div>
+
+        <div class="game-area">
+            <div class="word-display" id="wordDisplay">
+                Başlamak için seviye seçin!
+            </div>
+            <div class="options" id="options"></div>
+            <div id="feedback" class="feedback"></div>
+            <button onclick="startGame()">Oyunu Başlat</button>
+            <button onclick="reviewWrongAnswers()">Yanlış Cevapları Gözden Geçir</button> <!-- Yanlış cevapları gözden geçirme butonu -->
+        </div>
+
+        <div class="admin-panel">
+            <h3>Yeni Kelime Ekle</h3>
+            <div class="add-word-form">
+                <input type="text" id="engWord" placeholder="İngilizce kelime" required>
+                <input type="text" id="trWord" placeholder="Türkçe karşılığı" required>
+                <select id="wordLevel" required>
+                    <option value="">Seviye seçin</option>
+                    <option value="A1">A1 (Başlangıç)</option>
+                    <option value="A2">A2 (Temel)</option>
+                    <option value="B1">B1 (Orta)</option>
+                    <option value="B2">B2 (İleri)</option>
+                    <option value="A1-Cümle">A1-Cümle</option>
+                    <option value="A2-Cümle">A2-Cümle</option>
+                    <option value="B1-Cümle">B1-Cümle</option>
+                    <option value="B2-Cümle">B2-Cümle</option>
+                </select>
+                <button onclick="addNewWord()">Kelime Ekle</button>
+            </div>
+            <div id="addWordFeedback" class="feedback"></div>
+        </div>
+    </div>
+
+    <script>
+        let words = []; // Boş array olarak başlat
+        let currentLevel = 'A1';
+        let currentWord;
+        let score = 0;
+        let totalQuestions = 0;
+        let usedWords = [];
+        let wrongAnswersArray = [];
+
+        // Kelimeleri sunucudan yükle
+        async function loadWords() {
+            try {
+                const API_URL = window.location.hostname === 'localhost' 
+                    ? 'http://localhost:3000/api/words'
+                    : 'https://myengwords-production.up.railway.app/api/words';
+                    
+                    
+                const response = await fetch(API_URL);
+                words = await response.json();
+                console.log('Kelimeler yüklendi:', words);
+            } catch (error) {
+                console.error('Kelimeler yüklenirken hata:', error);
+            }
+        }
+
+        // Sayfa yüklendiğinde kelimeleri getir
+        window.onload = loadWords;
+
+        function setLevel(level) {
+            currentLevel = level;
+            startGame();
+        }
+
+        function getRandomWord() {
+            const levelWords = words.filter(word => word.level === currentLevel);
+            if (levelWords.length === 0) return null;
+            
+            if (usedWords.length === levelWords.length) {
+                usedWords = [];
+            }
+            
+            const availableWords = levelWords.filter(word => !usedWords.includes(word));
+            const randomWord = availableWords[Math.floor(Math.random() * availableWords.length)];
+            usedWords.push(randomWord);
+            return randomWord;
+        }
+
+        function getRandomOptions(correctWord) {
+            const levelWords = words.filter(word => word.level === currentLevel);
+            let options = [correctWord];
+            
+            while (options.length < 4 && levelWords.length >= 4) {
+                const randomWord = levelWords[Math.floor(Math.random() * levelWords.length)];
+                if (!options.includes(randomWord)) {
+                    options.push(randomWord);
+                }
+            }
+            
+            return options.sort(() => Math.random() - 0.5);
+        }
+
+        function checkAnswer(selectedAnswer) {
+            totalQuestions++;
+            document.getElementById('totalQuestions').textContent = totalQuestions;
+            
+            let feedback = document.getElementById('feedback');
+            if (selectedAnswer === currentWord.tr) {
+                score++;
+                document.getElementById('score').textContent = score;
+                feedback.textContent = "Doğru!";
+                feedback.className = "feedback correct";
+            } else {
+                feedback.textContent = `Yanlış! Doğru cevap: ${currentWord.tr}`;
+                feedback.className = "feedback incorrect";
+                // Yanlış cevaplanan soruyu diziye ekle
+                wrongAnswersArray.push(currentWord);
+            }
+
+            setTimeout(displayNewWord, 1500);
+        }
+
+        function displayNewWord() {
+            currentWord = getRandomWord();
+            if (!currentWord) {
+                document.getElementById('wordDisplay').textContent = 'Bu seviye için kelime bulunamadı!';
+                return;
+            }
+            
+            document.getElementById('wordDisplay').textContent = currentWord.eng;
+            
+            let options = getRandomOptions(currentWord);
+            let optionsHtml = options.map(word => 
+                `<button onclick="checkAnswer('${word.tr}')">${word.tr}</button>`
+            ).join('');
+            
+            document.getElementById('options').innerHTML = optionsHtml;
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('feedback').className = 'feedback';
+        }
+
+        function startGame() {
+            score = 0;
+            totalQuestions = 0;
+            usedWords = [];
+            document.getElementById('score').textContent = score;
+            document.getElementById('totalQuestions').textContent = totalQuestions;
+            displayNewWord();
+        }
+
+        function reviewWrongAnswers() {
+            if (wrongAnswersArray.length === 0) {
+                document.getElementById('feedback').innerHTML = '<p>Henüz yanlış cevaplanan soru yok!</p>';
+                return;
+            }
+
+            // Yanlış cevapları göster ve tekrar çözme butonu ekle
+            let feedbackHtml = '<h3>Yanlış Cevaplanan Sorular:</h3>';
+            wrongAnswersArray.forEach((word, index) => {
+                feedbackHtml += `<p>${index + 1}. ${word.eng} = ${word.tr}</p>`;
+            });
+            feedbackHtml += '<button onclick="retryWrongAnswers()">Yanlış Soruları Tekrar Çöz</button>';
+            
+            document.getElementById('feedback').innerHTML = feedbackHtml;
+        }
+
+        function retryWrongAnswers() {
+            if (wrongAnswersArray.length === 0) return;
+            
+            // Yanlış cevaplanan sorularla yeni bir oyun başlat
+            currentLevel = 'wrong-answers';
+            score = 0;
+            totalQuestions = 0;
+            usedWords = [];
+            document.getElementById('score').textContent = score;
+            document.getElementById('totalQuestions').textContent = totalQuestions;
+            
+            // İlk yanlış soruyu göster
+            displayWrongAnswer();
+        }
+
+        function displayWrongAnswer() {
+            if (wrongAnswersArray.length === 0) {
+                document.getElementById('wordDisplay').textContent = 'Tebrikler! Tüm yanlış cevapları tamamladınız.';
+                document.getElementById('options').innerHTML = '';
+                return;
+            }
+            
+            currentWord = wrongAnswersArray[0];
+            document.getElementById('wordDisplay').textContent = currentWord.eng;
+            
+            // Mevcut seviyedeki kelimelerden rastgele şıklar oluştur
+            const levelWords = words.filter(word => word.level === currentWord.level);
+            let options = [currentWord]; // Doğru cevabı ekle
+            
+            // 3 tane rastgele yanlış şık ekle
+            while (options.length < 4 && levelWords.length >= 4) {
+                const randomWord = levelWords[Math.floor(Math.random() * levelWords.length)];
+                if (!options.includes(randomWord) && randomWord.tr !== currentWord.tr) {
+                    options.push(randomWord);
+                }
+            }
+            
+            // Şıkları karıştır
+            options = options.sort(() => Math.random() - 0.5);
+            
+            let optionsHtml = options.map(word => 
+                `<button onclick="checkWrongAnswer('${word.tr}')">${word.tr}</button>`
+            ).join('');
+            
+            document.getElementById('options').innerHTML = optionsHtml;
+            document.getElementById('feedback').textContent = '';
+            document.getElementById('feedback').className = 'feedback';
+        }
+
+        function checkWrongAnswer(selectedAnswer) {
+            totalQuestions++;
+            document.getElementById('totalQuestions').textContent = totalQuestions;
+            
+            let feedback = document.getElementById('feedback');
+            if (selectedAnswer === currentWord.tr) {
+                score++;
+                document.getElementById('score').textContent = score;
+                feedback.textContent = "Doğru!";
+                feedback.className = "feedback correct";
+                // Doğru cevaplanan soruyu diziden çıkar
+                wrongAnswersArray.shift();
+            } else {
+                feedback.textContent = `Yanlış! Doğru cevap: ${currentWord.tr}`;
+                feedback.className = "feedback incorrect";
+                // Yanlış cevaplanan soruyu dizinin sonuna ekle
+                wrongAnswersArray.push(wrongAnswersArray.shift());
+            }
+
+            setTimeout(displayWrongAnswer, 1500);
+        }
+
+        async function addNewWord() {
+            const engWord = document.getElementById('engWord').value.trim();
+            const trWord = document.getElementById('trWord').value.trim();
+            const wordLevel = document.getElementById('wordLevel').value;
+            const feedback = document.getElementById('addWordFeedback');
+
+            // Validasyon
+            if (!engWord || !trWord || !wordLevel) {
+                feedback.textContent = 'Lütfen tüm alanları doldurun!';
+                feedback.className = 'feedback error';
+                return;
+            }
+
+            try {
+                const API_URL = window.location.hostname === 'localhost' 
+                    ? 'http://localhost:3000/api/words'
+                    : 'https://myengwords-production.up.railway.app/api/words';
+
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        eng: engWord,
+                        tr: trWord,
+                        level: wordLevel
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Kelime eklenirken bir hata oluştu');
+                }
+
+                // Başarılı
+                feedback.textContent = 'Kelime başarıyla eklendi!';
+                feedback.className = 'feedback success';
+
+                // Form'u temizle
+                document.getElementById('engWord').value = '';
+                document.getElementById('trWord').value = '';
+                document.getElementById('wordLevel').value = '';
+
+                // Kelime listesini güncelle
+                await loadWords();
+
+            } catch (error) {
+                console.error('Kelime eklenirken hata:', error);
+                feedback.textContent = 'Kelime eklenirken bir hata oluştu: ' + error.message;
+                feedback.className = 'feedback error';
+            }
+        }
+    </script>
+    <script src="https://app.embed.im/snow.js" defer></script>
+</body>
+</html>

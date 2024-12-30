@@ -1,0 +1,15 @@
+{
+  "name": "met-game",
+  "version": "1.0.0",
+  "description": "Kelime öğrenme oyunu",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.17.1",
+    "pg": "^8.11.3"
+  }
+}
